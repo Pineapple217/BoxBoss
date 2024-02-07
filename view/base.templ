@@ -1,0 +1,29 @@
+package view
+
+// import (
+// 	"fmt"
+// 	"github.com/docker/docker/api/types"
+// )
+// containers []types.Container
+templ Base() {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+			<script src="https://unpkg.com/htmx.org/dist/ext/sse.js"></script>
+			<link rel="stylesheet" href="static/css/xterm.css"/>
+			<script src="static/js/xterm.js"></script>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<link rel="stylesheet" href="static/css/tlw.css"/>
+			<script src="static/js/modal.js" defer></script>
+			<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css"/>
+			<title>CICD</title>
+		</head>
+		<body>
+			<main class="container">
+				{ children... }
+			</main>
+		</body>
+	</html>
+}

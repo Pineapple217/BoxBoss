@@ -1,0 +1,17 @@
+package view
+
+templ Build() {
+	@Base() {
+		<div>test test</div>
+		// <div>
+		// 	<div id="sse-feed" hx-ext="sse" sse-connect="/build_sse" sse-swap="message">
+		// 		Contents of this box will be updated in real time
+		// 		with every SSE message received from the chatroom.
+		// 	</div>
+		// </div> 
+		<div id="sse-feed" hx-ext="sse" sse-connect="/build_sse">
+			<div sse-swap="message" hx-target="#feed" hx-swap="beforeend"></div>
+		</div>
+		<div id="feed"></div>
+	}
+}

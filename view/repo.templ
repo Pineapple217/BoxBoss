@@ -1,0 +1,29 @@
+package view
+
+import "github.com/Pineapple217/harbor-hawk/database"
+import "strconv"
+
+templ Repos(repos []database.Repository) {
+	@Base() {
+		for _, repo := range repos {
+			@repoI(repo)
+		}
+	}
+}
+
+templ repoI(repo database.Repository) {
+	<article>
+		<header>{ repo.Name }</header>
+		{ repo.Url }
+		<br/>
+		{ repo.ContainerRepo.String }
+		<br/>
+		{ repo.ContainerTag.String }
+		<br/>
+		<footer>
+			<button hx-post={ "/repo/" + strconv.FormatInt(repo.ID, 10) + "/build" }>
+				Build
+			</button>
+		</footer>
+	</article>
+}
