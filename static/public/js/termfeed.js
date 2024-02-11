@@ -13,14 +13,15 @@ feed.addEventListener("close", (event) => {
   feed.close();
 });
 feed.addEventListener("message_encoded", (event) => {
-  const d = atob(JSON.parse(event.data));
-  // let uint8Array = new Uint8Array(d.length);
-  // for (var i = 0; i < d.length; i++) {
-  //   uint8Array[i] = d.charCodeAt(i);
-  // }
-  // console.log(uint8Array);
+  let d;
+  try {
+    d = atob(JSON.parse(event.data));
+  } catch {
+    d = event.data.replace(/\\n/g, "\n").replace(/\\r/g, "\r");
+  }
   term.write(d);
 });
-feed.addEventListener("message", (event) => {
-  term.writeln(event.data);
-});
+// feed.addEventListener("message", (event) => {
+//   term.writeln(event.data);
+// });
+term.reset();

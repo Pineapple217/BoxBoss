@@ -10,7 +10,6 @@ import (
 	"github.com/Pineapple217/harbor-hawk/database"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/jsonmessage"
@@ -95,12 +94,11 @@ type BuildSettings struct {
 	Repo *database.Repository
 }
 
-func BuildAndUploadImage(repo database.Repository, username string, password string, ch chan<- string) error {
-
+func BuildAndUploadImage(buildSettings BuildSettings, ch chan<- string) error {
+	repo := buildSettings.Repo
 	// Create a context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
-	defer close(ch)
 
 	// Step 1: Start the build container
 	containerID, err := startBuildContainer(ctx, cli, ch)
@@ -226,15 +224,15 @@ func pullRepo(ctx context.Context, cli *client.Client, containerID, githubRepoUR
 	return nil
 }
 
-func Test() {
-	l, _ := cli.PluginList(context.Background(), filters.Args{})
-	// r, _ := cli.PluginInstall(context.Background(), "compose", types.PluginInstallOptions{})
-	// buf := new(strings.Builder)
-	// io.Copy(buf, r)
-	// // check errors
-	// fmt.Println(buf.String())
-	fmt.Printf("%v", l)
-}
+// func Test() {
+// 	l, _ := cli.PluginList(context.Background(), filters.Args{})
+// 	// r, _ := cli.PluginInstall(context.Background(), "compose", types.PluginInstallOptions{})
+// 	// buf := new(strings.Builder)
+// 	// io.Copy(buf, r)
+// 	// // check errors
+// 	// fmt.Println(buf.String())
+// 	fmt.Printf("%v", l)
+// }
 
 func buildDockerfile(ctx context.Context, cli *client.Client, containerID string, repo string, tag string, ch chan<- string) error {
 	fmt.Println("Building container...")
@@ -263,7 +261,7 @@ func buildDockerfile(ctx context.Context, cli *client.Client, containerID string
 	execID := execResp.ID
 	startResp, err := cli.ContainerExecAttach(context.Background(), execID, types.ExecStartCheck{
 		ConsoleSize: &consoleSize,
-		// removing this flag makes the output slightly corrupted, DO NOT REMOVE
+		// removing Tty: true makes the output slightly corrupted, DO NOT REMOVE
 		Tty: true,
 	})
 	if err != nil {

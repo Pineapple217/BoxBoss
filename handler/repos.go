@@ -7,11 +7,12 @@ import (
 
 	"github.com/Pineapple217/harbor-hawk/database"
 	"github.com/Pineapple217/harbor-hawk/docker"
+	"github.com/Pineapple217/harbor-hawk/queue"
 	"github.com/Pineapple217/harbor-hawk/view"
 	"github.com/labstack/echo/v4"
 )
 
-var mainCh chan string
+// var mainCh chan string
 
 func Repos(c echo.Context) error {
 	quaries := database.GetQueries()
@@ -33,10 +34,14 @@ func RepoBuild(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	mainCh = make(chan string, 50)
+	// mainCh = make(chan string, 50)
 	// start := time.Now()
 
-	go docker.BuildAndUploadImage(repo, "user", "pwd", mainCh)
+	// go docker.BuildAndUploadImage(repo, "user", "pwd", mainCh)
+	queue := queue.GetBuildQueue()
+	queue.Enqueue(docker.BuildSettings{
+		Repo: &repo,
+	})
 
 	// go func() {
 	// 	for s := range ch {
@@ -62,39 +67,28 @@ func Building(c echo.Context) error {
 	return render(c, view.Building())
 }
 
-func Test(c echo.Context) error {
-	// docker.Test()
-	// return c.String(200, "")
-	return render(c, view.BuildingTest())
-}
+// func Test(c echo.Context) error {
+// 	// docker.Test()
+// 	// return c.String(200, "")
+// 	return render(c, view.BuildingTest())
+// }
 
+// TODO: if more then 1 page open this breaks
 func BuildingSSE(c echo.Context) error {
 	c.Response().Header().Set(echo.HeaderCacheControl, "no-cache")
 	c.Response().Header().Set(echo.HeaderConnection, "keep-alive")
 	c.Response().Header().Set(echo.HeaderContentType, "text/event-stream")
 
-	if mainCh == nil {
-		fmt.Fprint(c.Response(), buildSSE("message", "<div>no channel</div>"))
-	}
+	queue := queue.GetBuildQueue()
 
-	for result := range mainCh {
-		// result = strings.TrimSuffix(result, "\n")
-		// lines := strings.Split(result, "\n")
-		// for _, line := range lines {
-		// 	line = strings.TrimSuffix(line, "\n")
-		// 	m := "" + line + "<br/>"
-		// 	fmt.Fprint(c.Response(), buildSSE("message", m))
-		// }
-		fmt.Fprint(c.Response(), buildSSE("message_encoded", result))
-		c.Response().Flush()
+	ctx := c.Request().Context()
+	for {
+		select {
+		case result := <-queue.BuildLogsChannel:
+			fmt.Fprint(c.Response(), buildSSE("message_encoded", result))
+			c.Response().Flush()
+		case <-ctx.Done():
+			return c.NoContent(204)
+		}
 	}
-	// for result := range mainCh {
-	// 	println(result)
-	// }
-	// fmt.Fprint(c.Response(), buildSSE("message", "<div id='sse-feed' hx-swap-oob='true'></div>"))
-	fmt.Fprint(c.Response(), buildSSE("close", "close"))
-	c.Response().Flush()
-
-	return nil
-	// return c.NoContent(200)
 }

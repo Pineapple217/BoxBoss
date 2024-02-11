@@ -2,3 +2,5 @@
 database.db
 
 node_modules
+
+.vagrant

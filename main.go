@@ -1,13 +1,12 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"log"
 
 	"github.com/Pineapple217/harbor-hawk/database"
 	"github.com/Pineapple217/harbor-hawk/docker"
 	"github.com/Pineapple217/harbor-hawk/handler"
+	"github.com/Pineapple217/harbor-hawk/queue"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -25,12 +24,7 @@ func main() {
 	docker.Init()
 	database.Init("file:database.db")
 
-	queries := database.GetQueries()
-	authors, err := queries.ListRepos(context.Background())
-	if err != nil {
-		panic(err)
-	}
-	log.Println(authors)
+	queue.InitBuildQueue()
 
 	e.Static("/static", "static/public")
 
@@ -49,6 +43,6 @@ func main() {
 	e.GET("/", handler.Home)
 	e.GET("build", handler.BuildUI)
 	e.GET("build_sse", handler.BuildSSE)
-	e.GET("/test", handler.Test)
+	// e.GET("/test", handler.Test)
 	e.Start(":3000")
 }
