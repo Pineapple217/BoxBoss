@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
+	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/jsonmessage"
 )
@@ -96,44 +98,38 @@ type BuildSettings struct {
 
 func BuildAndUploadImage(buildSettings BuildSettings, ch chan<- string) error {
 	repo := buildSettings.Repo
-	// Create a context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	// Step 1: Start the build container
 	containerID, err := startBuildContainer(ctx, cli, ch)
 	if err != nil {
 		return err
 	}
-	ch <- "start build container"
+	ch <- "start build container\\r\\n"
 
-	// Step 2: Pull the GitHub repo inside the container
 	err = pullRepo(ctx, cli, containerID, repo.Url, ch)
 	if err != nil {
 		return err
 	}
-	ch <- "pull repo"
+	ch <- "pull repo\\r\\n"
 
-	// Step 3: Build the Dockerfile in the root of the given repo
 	err = buildDockerfile(ctx, cli, containerID, repo.ContainerRepo.String, repo.ContainerTag.String, ch)
 	if err != nil {
 		return err
 	}
-	ch <- "build docker file"
+	ch <- "build docker file\\r\\n"
 
 	err = cli.ContainerStop(ctx, containerID, container.StopOptions{})
-	// err = cli.ContainerStop(ctx, containerID, container.StopOptions{}, ch)
 	if err != nil {
 		return err
 	}
-	ch <- "stop container"
+	ch <- "stop container\\r\\n"
 
 	err = cli.ContainerRemove(ctx, containerID, types.ContainerRemoveOptions{})
-	// err = cli.ContainerRemove(ctx, containerID, types.ContainerRemoveOptions{}, ch)
 	if err != nil {
 		return err
 	}
-	ch <- "remove container"
+	ch <- "remove container\\r\\n"
 	return nil
 }
 
@@ -152,19 +148,38 @@ func (w *chanWriter) Write(p []byte) (int, error) {
 	return n, nil
 }
 
+func NewCRNLMiddleware(next io.Writer) io.Writer {
+	return crnlMiddleware{next}
+}
+
+type crnlMiddleware struct {
+	next io.Writer
+}
+
+func (c crnlMiddleware) Write(p []byte) (n int, err error) {
+	// Replace each newline character with \r\n before writing
+	replaced := bytes.ReplaceAll(p, []byte("\n"), []byte("\r\n"))
+	return c.next.Write(replaced)
+}
+
 func startBuildContainer(ctx context.Context, cli *client.Client, ch chan<- string) (string, error) {
-	const buildContainerImg = "moby/buildkit:master"
+	const buildContainerImg = "moby/buildkit:latest"
 	{
-		fmt.Println("pull image")
 		out, err := cli.ImagePull(ctx, buildContainerImg, types.ImagePullOptions{})
 		if err != nil {
 			return "", err
 		}
 		defer out.Close()
-		writer := newChanWriter(ch)
+		writer := NewCRNLMiddleware(newChanWriter(ch))
 		jsonmessage.DisplayJSONMessagesStream(out, writer, 1, true, nil)
 	}
-	fmt.Println("creating container")
+	_, err := cli.VolumeCreate(context.Background(), volume.CreateOptions{
+		Name: "HH-buildcache",
+	})
+	if err != nil {
+		fmt.Println(err)
+	}
+
 	resp, err := cli.ContainerCreate(
 		ctx,
 		&container.Config{
@@ -178,6 +193,11 @@ func startBuildContainer(ctx context.Context, cli *client.Client, ch chan<- stri
 					Type:   mount.TypeBind,
 					Source: "/home/vagrant/.docker/config.json",
 					Target: "/root/.docker/config.json",
+				},
+				{
+					Type:   mount.TypeVolume,
+					Source: "HH-buildcache",
+					Target: "/var/lib/buildkit",
 				},
 			},
 		},
@@ -236,7 +256,7 @@ func pullRepo(ctx context.Context, cli *client.Client, containerID, githubRepoUR
 
 func buildDockerfile(ctx context.Context, cli *client.Client, containerID string, repo string, tag string, ch chan<- string) error {
 	fmt.Println("Building container...")
-	repoUrl := fmt.Sprintf("docker.io/%s:%s", repo, tag)
+	repoUrl := fmt.Sprintf("%s:%s", repo, tag)
 	cmd := []string{
 		"buildctl-daemonless.sh",
 		"build",

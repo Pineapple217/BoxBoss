@@ -3,10 +3,6 @@ package view
 templ Building() {
 	@Base() {
 		<h1>Build feed</h1>
-		// <div id="sse-feed" hx-ext="sse" sse-connect="/h/building_sse">
-		// 	<div sse-swap="message" hx-target="#feed" hx-swap="beforeend"></div>
-		// </div>
-		// <div id="feed"></div>
 		<div id="terminal"></div>
 		<script src="/static/js/termfeed.js"></script>
 	}

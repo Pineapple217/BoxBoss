@@ -38,7 +38,7 @@ func Building() templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</h1>    <div id=\"terminal\"></div><script src=\"/static/js/termfeed.js\">")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</h1><div id=\"terminal\"></div><script src=\"/static/js/termfeed.js\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

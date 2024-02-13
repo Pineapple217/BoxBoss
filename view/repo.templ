@@ -1,7 +1,10 @@
 package view
 
-import "github.com/Pineapple217/harbor-hawk/database"
-import "strconv"
+import (
+	"strconv"
+	"github.com/Pineapple217/harbor-hawk/database"
+	"strings"
+)
 
 templ Repos(repos []database.Repository) {
 	@Base() {
@@ -13,17 +16,40 @@ templ Repos(repos []database.Repository) {
 
 templ repoI(repo database.Repository) {
 	<article>
-		<header>{ repo.Name }</header>
-		{ repo.Url }
+		<header>
+			<h1>{ repo.Name }</h1>
+		</header>
+		{ hideToken(repo.Url) }
 		<br/>
 		{ repo.ContainerRepo.String }
 		<br/>
 		{ repo.ContainerTag.String }
 		<br/>
 		<footer>
-			<button hx-post={ "/repo/" + strconv.FormatInt(repo.ID, 10) + "/build" }>
-				Build
-			</button>
+			<p class="grid">
+				<button hx-post={ "/repo/" + strconv.FormatInt(repo.ID, 10) + "/build" }>
+					Build
+				</button>
+				<button hx-post={ "/repo/" + strconv.FormatInt(repo.ID, 10) + "/update" }>
+					Update
+				</button>
+			</p>
 		</footer>
 	</article>
+}
+
+func hideToken(url string) string {
+	parts := strings.SplitN(url, "://", 2)
+	if len(parts) != 2 {
+		return url // Not a valid URL format
+	}
+
+	tokenParts := strings.SplitN(parts[1], "@", 2)
+	if len(tokenParts) != 2 {
+		return url // No token found
+	}
+	hostAndPath := tokenParts[1]
+	newURL := parts[0] + "://" + "*****" + "@" + hostAndPath
+
+	return newURL
 }

@@ -3,6 +3,7 @@ module github.com/Pineapple217/harbor-hawk
 go 1.20
 
 require (
+	github.com/creack/pty v1.1.18
 	github.com/docker/docker v24.0.7+incompatible
 	github.com/labstack/echo/v4 v4.11.4
 	github.com/mattn/go-sqlite3 v1.14.19

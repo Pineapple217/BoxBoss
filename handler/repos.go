@@ -12,8 +12,6 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-// var mainCh chan string
-
 func Repos(c echo.Context) error {
 	quaries := database.GetQueries()
 	repos, err := quaries.ListRepos(c.Request().Context())
@@ -34,32 +32,34 @@ func RepoBuild(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	// mainCh = make(chan string, 50)
-	// start := time.Now()
 
-	// go docker.BuildAndUploadImage(repo, "user", "pwd", mainCh)
 	queue := queue.GetBuildQueue()
 	queue.Enqueue(docker.BuildSettings{
 		Repo: &repo,
 	})
 
-	// go func() {
-	// 	for s := range ch {
-	// 		fmt.Println("Received:", s)
-	// 	}
-	// }()
-
-	// elapsed := time.Since(start)
-	// log.Printf("Building took %s", elapsed)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	return err
-	// }
-	// for result := range mainCh {
-	// 	println(result)
-	// }
-	// wg.Wait()
 	c.Response().Header().Add("HX-Redirect", "/building")
+	return c.NoContent(http.StatusAccepted)
+}
+
+func RepoUpdate(c echo.Context) error {
+	idStr := c.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return err
+	}
+	queries := database.GetQueries()
+	repo, err := queries.GetRepo(c.Request().Context(), id)
+	if err != nil {
+		return err
+	}
+	composePath := "/opt/stacks/" + repo.ComposeFile.String + "/docker-compose.yml"
+	docker.ComposePull(composePath, repo.ComposeService.String)
+	docker.ComposeStop(composePath, repo.ComposeService.String)
+	docker.ComposeRemove(composePath, repo.ComposeService.String)
+	docker.ComposeUp(composePath, repo.ComposeService.String)
+
+	c.Response().Header().Add("HX-Redirect", "/repos")
 	return c.NoContent(http.StatusAccepted)
 }
 
@@ -82,13 +82,14 @@ func BuildingSSE(c echo.Context) error {
 	queue := queue.GetBuildQueue()
 
 	ctx := c.Request().Context()
+	// TODO: only flush every 500ms or smth
 	for {
 		select {
 		case result := <-queue.BuildLogsChannel:
-			fmt.Fprint(c.Response(), buildSSE("message_encoded", result))
+			fmt.Fprint(c.Response(), buildSSE("message", result))
 			c.Response().Flush()
 		case <-ctx.Done():
-			return c.NoContent(204)
+			return nil
 		}
 	}
 }

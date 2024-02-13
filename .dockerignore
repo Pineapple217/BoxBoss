@@ -1,0 +1,10 @@
+**/.vagrant
+.gitignore
+.dockerignore
+Vagrantfile
+**/*.db
+.air.toml
+**/temp
+docker-compose.yml
+LICENSE
+README.md

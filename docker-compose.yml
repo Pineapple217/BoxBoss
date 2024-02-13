@@ -1,10 +1,13 @@
-version: "3.7"
+version: "3"
 
 services:
-  caddy:
-    image: caddy:2.7
-    restart: unless-stopped
+  cicd:
+    build: .
+    container_name: cicd
     ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
+      - "3000:3000"
+    privileged: true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /opt/stacks:/opt/stacks
+      - ./database.db:/app/database.db

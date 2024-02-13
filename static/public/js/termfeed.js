@@ -6,13 +6,12 @@ var term = new Terminal({
   rows: 50,
 });
 term.open(document.getElementById("terminal"));
-const feed = new EventSource("/h/building_sse");
-// term.writeln("Hello from \x1B[1;3;31mxterm.js\x1B[0m $ ");
+const feed = new EventSource("/building_sse");
 feed.addEventListener("close", (event) => {
   console.log("closed");
   feed.close();
 });
-feed.addEventListener("message_encoded", (event) => {
+feed.addEventListener("message", (event) => {
   let d;
   try {
     d = atob(JSON.parse(event.data));
@@ -21,7 +20,4 @@ feed.addEventListener("message_encoded", (event) => {
   }
   term.write(d);
 });
-// feed.addEventListener("message", (event) => {
-//   term.writeln(event.data);
-// });
 term.reset();
