@@ -17,7 +17,7 @@
   poll = false
   poll_interval = 0
   post_cmd = []
-  pre_cmd = ["templ generate", "npx tailwindcss -o ./static/public/css/tlw.css --minify", "sqlc generate"]
+  pre_cmd = ["templ generate", "sqlc generate"]
   rerun = false
   rerun_delay = 500
   send_interrupt = false

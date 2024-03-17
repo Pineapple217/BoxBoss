@@ -68,7 +68,7 @@ func BuildingTest() templ.Component {
 				templ_7745c5c3_Buffer = templ.GetBuffer()
 				defer templ.ReleaseBuffer(templ_7745c5c3_Buffer)
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<h1>Build feed tester</h1>    <div id=\"terminal\"></div> <script src=\"/static/js/a.js\"></script>")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<h1>Build feed tester</h1><div id=\"terminal\"></div><script src=\"/static/js/a.js\"></script>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

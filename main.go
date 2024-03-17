@@ -45,8 +45,7 @@ func main() {
 	h.GET("/containers", handler.Containers)
 	h.GET("/repo/createform", handler.RepoCreateForm)
 
-	api := e.Group("/api")
-	api.GET("/container/:id/update", handler.UpdateContainer)
+	// api := e.Group("/api")
 
 	e.GET("/repos", handler.Repos)
 	// e.GET("/repo/create", handler.RepoCreate)

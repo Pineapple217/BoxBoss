@@ -11,12 +11,7 @@ templ Building() {
 templ BuildingTest() {
 	@Base() {
 		<h1>Build feed tester</h1>
-		// <div id="sse-feed" hx-ext="sse" sse-connect="/h/building_sse">
-		// 	<div sse-swap="message" hx-target="#feed" hx-swap="beforeend"></div>
-		// </div>
-		// <div id="feed"></div>
 		<div id="terminal"></div>
-		// @sseFeedSetup()
 		<script src="/static/js/a.js"></script>
 	}
 }
