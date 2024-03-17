@@ -73,23 +73,30 @@ func Building(c echo.Context) error {
 // 	return render(c, view.BuildingTest())
 // }
 
-// TODO: if more then 1 page open this breaks
+// TODO: buildlogs do not show on slow network, SSE needs to connect before before build starts
 func BuildingSSE(c echo.Context) error {
 	c.Response().Header().Set(echo.HeaderCacheControl, "no-cache")
 	c.Response().Header().Set(echo.HeaderConnection, "keep-alive")
 	c.Response().Header().Set(echo.HeaderContentType, "text/event-stream")
 
 	queue := queue.GetBuildQueue()
+	b := *queue.Broadcaster
+	ch := b.Subscribe()
 
 	ctx := c.Request().Context()
 	// TODO: only flush every 500ms or smth
 	for {
 		select {
-		case result := <-queue.BuildLogsChannel:
+		case result := <-ch:
 			fmt.Fprint(c.Response(), buildSSE("message", result))
 			c.Response().Flush()
 		case <-ctx.Done():
+			b.CancelSubscription(ch)
 			return nil
 		}
 	}
+}
+
+func RepoCreateForm(c echo.Context) error {
+	return nil
 }

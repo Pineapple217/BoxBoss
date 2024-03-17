@@ -45,53 +45,6 @@ func Ps() []types.Container {
 	return containers
 }
 
-// , removeOldImage bool
-func UpdateContainer(containerID string) error {
-	if cli == nil {
-		panic("docker client is nil")
-	}
-
-	// Get container details
-	fmt.Println("container details")
-	containerInfo, err := cli.ContainerInspect(context.Background(), containerID)
-	if err != nil {
-		return err
-	}
-
-	// Extract image name from container details
-	oldImageName := containerInfo.Config.Image
-
-	// Pull the new image
-	out, err := cli.ImagePull(context.Background(), oldImageName, types.ImagePullOptions{})
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	// Stop the container
-	err = cli.ContainerStop(context.Background(), containerID, container.StopOptions{})
-	if err != nil {
-		return err
-	}
-
-	// Remove the old image if specified
-	// if removeOldImage {
-	// 	err = cli.ImageRemove(context.Background(), oldImageName, types.ImageRemoveOptions{})
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
-
-	// Start the container with the updated image
-	err = cli.ContainerStart(context.Background(), containerID, types.ContainerStartOptions{})
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("DONE")
-	return nil
-}
-
 type BuildSettings struct {
 	Repo *database.Repository
 }
@@ -101,19 +54,19 @@ func BuildAndUploadImage(buildSettings BuildSettings, ch chan<- string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	containerID, err := startBuildContainer(ctx, cli, ch)
+	containerID, err := startBuildContainer(ctx, ch)
 	if err != nil {
 		return err
 	}
 	ch <- "start build container\\r\\n"
 
-	err = pullRepo(ctx, cli, containerID, repo.Url, ch)
+	err = pullRepo(ctx, containerID, repo.Url, ch)
 	if err != nil {
 		return err
 	}
 	ch <- "pull repo\\r\\n"
 
-	err = buildDockerfile(ctx, cli, containerID, repo.ContainerRepo.String, repo.ContainerTag.String, ch)
+	err = buildDockerfile(ctx, containerID, repo.ContainerRepo.String, repo.ContainerTag.String, ch)
 	if err != nil {
 		return err
 	}
@@ -141,6 +94,7 @@ func newChanWriter(ch chan<- string) *chanWriter {
 	return &chanWriter{ch: ch}
 }
 
+// TODO: cleanup
 func (w *chanWriter) Write(p []byte) (int, error) {
 	n := len(p)
 	j, _ := json.Marshal(p)
@@ -148,6 +102,7 @@ func (w *chanWriter) Write(p []byte) (int, error) {
 	return n, nil
 }
 
+// TODO: refactor
 func NewCRNLMiddleware(next io.Writer) io.Writer {
 	return crnlMiddleware{next}
 }
@@ -162,7 +117,7 @@ func (c crnlMiddleware) Write(p []byte) (n int, err error) {
 	return c.next.Write(replaced)
 }
 
-func startBuildContainer(ctx context.Context, cli *client.Client, ch chan<- string) (string, error) {
+func startBuildContainer(ctx context.Context, ch chan<- string) (string, error) {
 	const buildContainerImg = "moby/buildkit:latest"
 	{
 		out, err := cli.ImagePull(ctx, buildContainerImg, types.ImagePullOptions{})
@@ -219,7 +174,7 @@ func startBuildContainer(ctx context.Context, cli *client.Client, ch chan<- stri
 	return resp.ID, nil
 }
 
-func pullRepo(ctx context.Context, cli *client.Client, containerID, githubRepoURL string, ch chan<- string) error {
+func pullRepo(ctx context.Context, containerID, githubRepoURL string, ch chan<- string) error {
 	// Use 'git clone' to pull the GitHub repo inside the container
 	fmt.Println("pulling repo")
 	cmd := []string{"git", "clone", githubRepoURL, "/app"}
@@ -254,7 +209,7 @@ func pullRepo(ctx context.Context, cli *client.Client, containerID, githubRepoUR
 // 	fmt.Printf("%v", l)
 // }
 
-func buildDockerfile(ctx context.Context, cli *client.Client, containerID string, repo string, tag string, ch chan<- string) error {
+func buildDockerfile(ctx context.Context, containerID string, repo string, tag string, ch chan<- string) error {
 	fmt.Println("Building container...")
 	repoUrl := fmt.Sprintf("%s:%s", repo, tag)
 	cmd := []string{

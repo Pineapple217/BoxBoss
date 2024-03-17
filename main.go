@@ -43,11 +43,13 @@ func main() {
 
 	h := e.Group("/h")
 	h.GET("/containers", handler.Containers)
+	h.GET("/repo/createform", handler.RepoCreateForm)
 
 	api := e.Group("/api")
 	api.GET("/container/:id/update", handler.UpdateContainer)
 
 	e.GET("/repos", handler.Repos)
+	// e.GET("/repo/create", handler.RepoCreate)
 	e.POST("/repo/:id/build", handler.RepoBuild)
 	e.POST("/repo/:id/update", handler.RepoUpdate)
 	e.GET("/building", handler.Building)

@@ -1,6 +1,9 @@
 package queue
 
 import (
+	"context"
+
+	"github.com/Pineapple217/harbor-hawk/broadcast"
 	"github.com/Pineapple217/harbor-hawk/docker"
 )
 
@@ -22,34 +25,27 @@ type buildQueue struct {
 	buildSettingsChannel chan docker.BuildSettings
 	workingChannel       chan bool
 	BuildLogsChannel     chan string
+	Broadcaster          *broadcast.BroadcastServer
 }
 
 func newBuildQueue() *buildQueue {
 	buildSettingsChannel := make(chan docker.BuildSettings, 100)
 	workingChannel := make(chan bool, 1)
-	buildLogsChannel := make(chan string, 100)
+	buildLogsChannel := make(chan string, 1)
+	broadcaster := broadcast.NewBroadcastServer(context.Background(), buildLogsChannel)
+
 	return &buildQueue{
 		buildSettingsChannel: buildSettingsChannel,
 		workingChannel:       workingChannel,
 		BuildLogsChannel:     buildLogsChannel,
+		Broadcaster:          &broadcaster,
 	}
 }
 
 func (e *buildQueue) Work() {
-	// for {
-	// 	select {
-	// 	case buildSettings := <-e.buildSettingsChannel:
-	// 		// Enqueue message to workingChannel to avoid miscalculation in queue size.
-	// 		e.workingChannel <- true
-
-	// 		// Let's assume this time sleep is send email process
-	// 		docker.BuildAndUploadImage(buildSettings, e.buildLogsChannel)
-
-	// 		<-e.workingChannel
-	// 	}
-	// }
 	for buildSettings := range e.buildSettingsChannel {
 		e.workingChannel <- true
+		// j, _ := json.Marshal(p)
 		e.BuildLogsChannel <- "\x1B[1;3;31mSTART BUILD\x1B[0m\\r\\n"
 		docker.BuildAndUploadImage(buildSettings, e.BuildLogsChannel)
 		e.BuildLogsChannel <- "\\r\\n"
