@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -38,7 +39,7 @@ func RepoBuild(c echo.Context) error {
 		Repo: &repo,
 	})
 
-	c.Response().Header().Add("HX-Redirect", "/building")
+	// c.Response().Header().Add("HX-Redirect", "/building")
 	return c.NoContent(http.StatusAccepted)
 }
 
@@ -53,13 +54,28 @@ func RepoUpdate(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	composePath := "/opt/stacks/" + repo.ComposeFile.String + "/docker-compose.yml"
-	docker.ComposePull(composePath, repo.ComposeService.String)
-	docker.ComposeStop(composePath, repo.ComposeService.String)
-	docker.ComposeRemove(composePath, repo.ComposeService.String)
-	docker.ComposeUp(composePath, repo.ComposeService.String)
+	queue := queue.GetBuildQueue()
+	l := queue.BuildLogsChannel
+	cw := docker.NewFixLinebreakMiddleware(docker.NewChanWriter(l))
 
-	c.Response().Header().Add("HX-Redirect", "/repos")
+	composePath := "/opt/stacks/" + repo.ComposeFile.String + "/docker-compose.yml"
+	docker.ComposePull(composePath, repo.ComposeService.String, cw)
+	docker.ComposeStop(composePath, repo.ComposeService.String, cw)
+	docker.ComposeRemove(composePath, repo.ComposeService.String, cw)
+	docker.ComposeUp(composePath, repo.ComposeService.String, cw)
+
+	containerid, err := docker.GetServiceContainerId(composePath, repo.ComposeService.String)
+	if err == nil {
+		err = queries.UpdateRepoContainerId(c.Request().Context(), database.UpdateRepoContainerIdParams{
+			ContainerID: sql.NullString{String: containerid, Valid: true},
+			ID:          repo.ID,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	// c.Response().Header().Add("HX-Redirect", "/repos")
 	return c.NoContent(http.StatusAccepted)
 }
 

@@ -23,3 +23,8 @@ ORDER BY name;
 -- name: DeleteRepo :exec
 DELETE FROM repositories
 WHERE id = ?;
+
+-- name: UpdateRepoContainerId :exec
+UPDATE repositories
+set container_id = ?
+where id = ?;

@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 )
 
 const deleteRepo = `-- name: DeleteRepo :exec
@@ -93,4 +94,20 @@ func (q *Queries) ListRepos(ctx context.Context) ([]Repository, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateRepoContainerId = `-- name: UpdateRepoContainerId :exec
+UPDATE repositories
+set container_id = ?
+where id = ?
+`
+
+type UpdateRepoContainerIdParams struct {
+	ContainerID sql.NullString
+	ID          int64
+}
+
+func (q *Queries) UpdateRepoContainerId(ctx context.Context, arg UpdateRepoContainerIdParams) error {
+	_, err := q.db.ExecContext(ctx, updateRepoContainerId, arg.ContainerID, arg.ID)
+	return err
 }

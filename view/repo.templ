@@ -9,6 +9,15 @@ import (
 templ Repos(repos []database.Repository) {
 	@Base() {
 		<h1>Repo's</h1>
+		<details>
+			<summary role="button" class="outline contrast">Terminal</summary>
+			<div id="terminal"></div>
+			<script src="/static/js/termfeed.js"></script>
+			<hr/>
+			<script>
+				me().run(e => {let m = me(); window.openTerm = () => {m.open = true} })	
+			</script>
+		</details>
 		<button data-target="modal-create" onclick="toggleModal(event)">
 			Launch demo modal
 		</button>
@@ -63,7 +72,11 @@ templ repoI(repo database.Repository) {
 		<br/>
 		<footer>
 			<p class="grid">
-				<button hx-post={ "/repo/" + strconv.FormatInt(repo.ID, 10) + "/build" }>
+				<button
+					hx-post={ "/repo/" + strconv.FormatInt(repo.ID, 10) + "/build" }
+					hx-on:click="window.openTerm()"
+					hx-swap="none"
+				>
 					Build
 				</button>
 				<button hx-post={ "/repo/" + strconv.FormatInt(repo.ID, 10) + "/update" }>

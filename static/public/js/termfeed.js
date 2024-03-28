@@ -3,7 +3,7 @@ var term = new Terminal({
   // fontFamily: "'JetBrains Mono', monospace",
   // cursorBlink,
   cols: 115,
-  rows: 50,
+  rows: 20,
 });
 term.open(document.getElementById("terminal"));
 const feed = new EventSource("/building_sse");

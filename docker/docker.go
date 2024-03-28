@@ -1,9 +1,7 @@
 package docker
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"time"
@@ -86,37 +84,6 @@ func BuildAndUploadImage(buildSettings BuildSettings, ch chan<- string) error {
 	return nil
 }
 
-type chanWriter struct {
-	ch chan<- string
-}
-
-func newChanWriter(ch chan<- string) *chanWriter {
-	return &chanWriter{ch: ch}
-}
-
-// TODO: cleanup
-func (w *chanWriter) Write(p []byte) (int, error) {
-	n := len(p)
-	j, _ := json.Marshal(p)
-	w.ch <- string(j)
-	return n, nil
-}
-
-// TODO: refactor
-func NewCRNLMiddleware(next io.Writer) io.Writer {
-	return crnlMiddleware{next}
-}
-
-type crnlMiddleware struct {
-	next io.Writer
-}
-
-func (c crnlMiddleware) Write(p []byte) (n int, err error) {
-	// Replace each newline character with \r\n before writing
-	replaced := bytes.ReplaceAll(p, []byte("\n"), []byte("\r\n"))
-	return c.next.Write(replaced)
-}
-
 func startBuildContainer(ctx context.Context, ch chan<- string) (string, error) {
 	const buildContainerImg = "moby/buildkit:latest"
 	{
@@ -125,7 +92,7 @@ func startBuildContainer(ctx context.Context, ch chan<- string) (string, error) 
 			return "", err
 		}
 		defer out.Close()
-		writer := NewCRNLMiddleware(newChanWriter(ch))
+		writer := NewFixLinebreakMiddleware(NewChanWriter(ch))
 		jsonmessage.DisplayJSONMessagesStream(out, writer, 1, true, nil)
 	}
 	_, err := cli.VolumeCreate(context.Background(), volume.CreateOptions{
@@ -195,7 +162,7 @@ func pullRepo(ctx context.Context, containerID, githubRepoURL string, ch chan<- 
 		panic(err)
 	}
 	defer startResp.Close()
-	io.Copy(newChanWriter(ch), startResp.Reader)
+	io.Copy(NewChanWriter(ch), startResp.Reader)
 	return nil
 }
 
@@ -243,7 +210,7 @@ func buildDockerfile(ctx context.Context, containerID string, repo string, tag s
 		panic(err)
 	}
 	defer startResp.Close()
-	io.Copy(newChanWriter(ch), startResp.Reader)
+	io.Copy(NewChanWriter(ch), startResp.Reader)
 	fmt.Println("Build done!")
 
 	return nil
