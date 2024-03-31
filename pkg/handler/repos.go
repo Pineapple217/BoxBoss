@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/Pineapple217/harbor-hawk/database"
-	"github.com/Pineapple217/harbor-hawk/docker"
-	"github.com/Pineapple217/harbor-hawk/queue"
-	"github.com/Pineapple217/harbor-hawk/view"
+	"github.com/Pineapple217/BoxBoss/pkg/database"
+	"github.com/Pineapple217/BoxBoss/pkg/docker"
+	"github.com/Pineapple217/BoxBoss/pkg/queue"
+	"github.com/Pineapple217/BoxBoss/pkg/view"
 	"github.com/labstack/echo/v4"
 )
 

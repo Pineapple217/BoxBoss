@@ -2,9 +2,10 @@ package queue
 
 import (
 	"context"
+	"log/slog"
 
-	"github.com/Pineapple217/harbor-hawk/broadcast"
-	"github.com/Pineapple217/harbor-hawk/docker"
+	"github.com/Pineapple217/BoxBoss/pkg/broadcast"
+	"github.com/Pineapple217/BoxBoss/pkg/docker"
 )
 
 var (
@@ -47,7 +48,10 @@ func (e *buildQueue) Work() {
 		e.workingChannel <- true
 		// j, _ := json.Marshal(p)
 		e.BuildLogsChannel <- "\x1B[1;3;31mSTART BUILD\x1B[0m\\r\\n"
-		docker.BuildAndUploadImage(buildSettings, e.BuildLogsChannel)
+		err := docker.BuildAndUploadImage(buildSettings, e.BuildLogsChannel)
+		if err != nil {
+			slog.Warn("Docker image build failed", "error", err)
+		}
 		e.BuildLogsChannel <- "\\r\\n"
 		e.BuildLogsChannel <- "\x1B[1;3;31mEND BUILD\x1B[0m\\r\\n"
 		<-e.workingChannel

@@ -6,7 +6,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/Pineapple217/harbor-hawk/database"
+	"github.com/Pineapple217/BoxBoss/pkg/database"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -32,7 +32,7 @@ func Init() {
 }
 
 func Ps() []types.Container {
-	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{All: true})
+	containers, err := cli.ContainerList(context.Background(), container.ListOptions{All: true})
 	if err != nil {
 		panic(err)
 	}
@@ -76,7 +76,7 @@ func BuildAndUploadImage(buildSettings BuildSettings, ch chan<- string) error {
 	}
 	ch <- "stop container\\r\\n"
 
-	err = cli.ContainerRemove(ctx, containerID, types.ContainerRemoveOptions{})
+	err = cli.ContainerRemove(ctx, containerID, container.RemoveOptions{})
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func startBuildContainer(ctx context.Context, ch chan<- string) (string, error) 
 		jsonmessage.DisplayJSONMessagesStream(out, writer, 1, true, nil)
 	}
 	_, err := cli.VolumeCreate(context.Background(), volume.CreateOptions{
-		Name: "HH-buildcache",
+		Name: "bb-buildcache",
 	})
 	if err != nil {
 		fmt.Println(err)
@@ -118,7 +118,7 @@ func startBuildContainer(ctx context.Context, ch chan<- string) (string, error) 
 				},
 				{
 					Type:   mount.TypeVolume,
-					Source: "HH-buildcache",
+					Source: "bb-buildcache",
 					Target: "/var/lib/buildkit",
 				},
 			},
@@ -126,14 +126,14 @@ func startBuildContainer(ctx context.Context, ch chan<- string) (string, error) 
 		// TODO: volumes stapelen op maar ik dacht dat ik er geen aanmaakt???
 		nil,
 		nil,
-		"HH-build",
+		"bb-build",
 	)
 	if err != nil {
 		return "", err
 	}
 
 	fmt.Println("starting container")
-	err = cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{})
+	err = cli.ContainerStart(ctx, resp.ID, container.StartOptions{})
 	if err != nil {
 		return "", err
 	}
